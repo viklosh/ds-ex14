@@ -1,0 +1,50 @@
+---
+- name: Add host
+  hosts: localhost
+  connection: local
+  tasks:
+  - name: Add host to in-memory inventory
+    add_host:
+      hostname: "{{ hostname }}"
+      host_key_checking: false
+
+  - name: Ensure ssh started
+    wait_for:
+      host: "{{ hostname }}"
+      port: "22"
+      state: started
+
+- name: Deploy boxfuse application...
+  hosts: "{{ hostname }}"
+  vars_files:
+    - vars.file.yml
+  become: yes
+
+  tasks:
+  - name: Ensure docker and python pip package is present.
+    apt:
+      name:
+      - docker.io
+      - python3-pip
+      update_cache: yes
+      state: present
+
+  - name: Ensure pip docker-py and boto3 is present
+    pip:
+      name: 
+        - docker-py
+
+  - name: Log into private registry
+    docker_login:
+      registry: "{{ registry }}"
+      username: "json_key"
+      password: " {{ lookup('file', 'key.json')}}"
+  
+  - name: Ensure boxfuse container is started...
+    docker_container:
+      name: boxfuse
+      image: '{{ imagename }}'
+      state: started
+      restart_policy: unless-stopped
+      ports:
+      - "8080:8080"
