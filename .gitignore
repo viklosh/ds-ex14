@@ -6,3 +6,5 @@ key.json
 terraform.tfstate
 terraform.tfstate.backup
 id_rsa
+vault.key
+.terraform.tfstate.lock.info

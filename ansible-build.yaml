@@ -1,0 +1,58 @@
+---
+- name: Add host
+  hosts: localhost
+  connection: local
+  tasks:
+  - name: Add host to in-memory inventory
+    add_host:
+      hostname: "{{ hostname }}"
+      host_key_checking: false
+
+  - name: Ensure ssh started
+    wait_for:
+      host: "{{ hostname }}"
+      port: "22"
+      state: started
+
+- name: Build docker image.
+  hosts: "{{ hostname }}"
+  gather_facts: no
+  vars_files:
+    - vars.file.yml
+  become: true
+  tasks:
+
+    - name: Ensure docker and python pip package is present.
+      apt:
+        name:
+        - docker.io
+        - python3-pip
+        update_cache: yes
+        state: present
+
+    - name: Ensure pip docker-py and boto3 is present
+      pip:
+        name: 
+          - docker-py
+
+    - name: Copy Dockerfile
+      copy:
+        src: ./Dockerfile
+        dest: ~/
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Log into private registry
+      docker_login:
+        registry: "{{ registry }}"
+        username: "json_key"
+        password: " {{ lookup('file', 'key.json')}}"
+
+    - name: Build an image.
+      docker_image:
+        build:
+          path: ~/
+        name: '{{ imagename }}'
+        source: build
+        push: yes
