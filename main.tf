@@ -52,41 +52,45 @@ resource "yandex_compute_instance" "vm-1" {
     ssh-keys = "ubuntu:${file("./id_rsa.pub")}"
   }
 
-  provisioner "file" {
-    source      = "./Dockerfile"
-    destination = "~/Dockerfile"
-    connection {
-      type     = "ssh"
-      user     = "ubuntu"
-      private_key = file("./id_rsa")
-      host     = self.network_interface.0.nat_ip_address
-    }
-  }
+  # provisioner "file" {
+  #   source      = "./Dockerfile"
+  #   destination = "~/Dockerfile"
+  #   connection {
+  #     type     = "ssh"
+  #     user     = "ubuntu"
+  #     private_key = file("./id_rsa")
+  #     host     = self.network_interface.0.nat_ip_address
+  #   }
+  # }
 
-  provisioner "file" {
-    source      = "./key.json"
-    destination = "~/key.json"
-    connection {
-      type     = "ssh"
-      user     = "ubuntu"
-      private_key = file("./id_rsa")
-      host     = self.network_interface.0.nat_ip_address
-    }
-  }
+  # provisioner "file" {
+  #   source      = "./key.json"
+  #   destination = "~/key.json"
+  #   connection {
+  #     type     = "ssh"
+  #     user     = "ubuntu"
+  #     private_key = file("./id_rsa")
+  #     host     = self.network_interface.0.nat_ip_address
+  #   }
+  # }
 
-  provisioner "remote-exec" {
-    inline = [
-      "sudo apt update && sudo apt install docker.io -y",
-      "cat key.json | sudo docker login --username json_key --password-stdin cr.yandex",
-      "sudo docker build -t cr.yandex/crp789tmi24lkfp3ieba/boxfuse .",
-      "sudo docker push cr.yandex/crp789tmi24lkfp3ieba/boxfuse"
-    ]
-    connection {
-      type     = "ssh"
-      user     = "ubuntu"
-      private_key = file("./id_rsa")
-      host     = self.network_interface.0.nat_ip_address
-    }
+  # provisioner "remote-exec" {
+  #   inline = [
+  #     "sudo apt update && sudo apt install docker.io -y",
+  #     "cat key.json | sudo docker login --username json_key --password-stdin cr.yandex",
+  #     "sudo docker build -t cr.yandex/crp789tmi24lkfp3ieba/boxfuse .",
+  #     "sudo docker push cr.yandex/crp789tmi24lkfp3ieba/boxfuse"
+  #   ]
+  #   connection {
+  #     type     = "ssh"
+  #     user     = "ubuntu"
+  #     private_key = file("./id_rsa")
+  #     host     = self.network_interface.0.nat_ip_address
+  #   }
+  # }
+
+  provisioner "local-exec" {
+    command = "ansible-playbook ansible-build.yaml -e 'hostname=${self.network_interface.0.nat_ip_address}'"
   }
 
   depends_on = [
@@ -118,32 +122,38 @@ resource "yandex_compute_instance" "vm-2" {
     ssh-keys = "ubuntu:${file("./id_rsa.pub")}"
   }
   
-  provisioner "file" {
-    source      = "./key.json"
-    destination = "~/key.json"
-    connection {
-      type     = "ssh"
-      user     = "ubuntu"
-      private_key = file("./id_rsa")
-      host     = self.network_interface.0.nat_ip_address
-    }
+  # provisioner "file" {
+  #   source      = "./key.json"
+  #   destination = "~/key.json"
+  #   connection {
+  #     type     = "ssh"
+  #     user     = "ubuntu"
+  #     private_key = file("./id_rsa")
+  #     host     = self.network_interface.0.nat_ip_address
+  #   }
+  # }
+
+  # provisioner "remote-exec" {
+  #   inline = [
+  #     "sudo apt update && sudo apt install docker.io -y",
+  #     "cat key.json | sudo docker login --username json_key --password-stdin cr.yandex",
+  #     "sudo docker run -d -p 8080:8080 cr.yandex/crp789tmi24lkfp3ieba/boxfuse"
+  #   ]
+  #   connection {
+  #     type     = "ssh"
+  #     user     = "ubuntu"
+  #     private_key = file("./id_rsa")
+  #     host     = self.network_interface.0.nat_ip_address
+  #   }
+  # }
+
+  provisioner "local-exec" {
+    command = "ansible-playbook ansible-deploy.yaml -e 'hostname=${self.network_interface.0.nat_ip_address}'"
   }
 
-  provisioner "remote-exec" {
-    inline = [
-      "sudo apt update && sudo apt install docker.io -y",
-      "cat key.json | sudo docker login --username json_key --password-stdin cr.yandex",
-      "sudo docker run -d -p 8080:8080 cr.yandex/crp789tmi24lkfp3ieba/boxfuse"
-    ]
-    connection {
-      type     = "ssh"
-      user     = "ubuntu"
-      private_key = file("./id_rsa")
-      host     = self.network_interface.0.nat_ip_address
-    }
-  }
   depends_on = [
     yandex_vpc_network.network-1,
+    yandex_compute_instance.vm-1,
   ]
 }
 
